@@ -1,0 +1,249 @@
+---
+title: "open street map OSM"
+author: "MV"
+date: "4/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Dagligvareleverandører
+
+I november var Konkurransetilsynet på bevissikring hos flere aktører i dagligvaresektoren.
+
+Bevissikringen er et ledd i å tilsynets vurdering av om store forskjeller i innkjøpspriser kan innebære et mulig lovbrudd, og kan føre til høyere priser til forbrukerne. 
+
+Denne bevissikringen hadde blant annet sin bakgrunn i tilsynets undersøkelse av innkjøpspriser til dagligvarekjedene, der tilsynet fant at noen leverandører hadde store forskjeller i sine priser til dagligvarekjedene.
+
+Libraries
+
+```{r}
+
+library(osmdata) 
+library(tidyverse)
+library(sf)
+library(leaflet)
+library(sf)
+
+```
+## Bergen
+ 
+### Sjekk geografisk beliggenhet
+ 
+```{r}
+bbox <- getbb("Bergen, Norway")
+
+
+# Límites políticos
+
+bbox_poly <- getbb("Bergen, Norway", format_out = "sf_polygon")
+
+leaflet(bbox_poly) %>%  addTiles() %>% addPolygons()
+
+```
+ 
+### Veier
+ 
+```{r}
+carreteras <- getbb("Bergen Norway")%>%
+  opq()%>%
+  add_osm_feature(key = "highway", 
+                  value = c("road", "motorway", "primary", 
+                            "secondary", "tertiary")) %>%
+  osmdata_sf()
+
+```
+### Gater
+
+```{r}
+calles <- getbb("Bergen Norway")%>%
+  opq()%>%
+  add_osm_feature(key = "highway", 
+                  value = c("residential", "living_street",
+                            "unclassified",
+                            "service", "footway")) %>%
+  osmdata_sf()
+
+```
+
+### kystlinje
+
+```{r}
+costa <- getbb("Bergen Norway")%>%
+  opq()%>%
+    add_osm_feature(key = 'natural', value = 'coastline') %>%
+    osmdata_sf()
+
+
+```
+
+## mørk bakgrunn 
+
+```{r}
+ggplot() +
+  geom_sf(data = calles$osm_lines,
+          inherit.aes = FALSE,
+          color = "orange",
+          size = .1,
+          alpha = .8)+
+  geom_sf(data = carreteras$osm_lines,
+          inherit.aes = FALSE,
+          color = "grey40",
+          size = .2,
+          alpha = .8)+
+   coord_sf(xlim = c(5.30, 5.36), 
+           ylim = c(60.37, 60.42),
+           expand = FALSE) +
+  theme_void() +
+  labs(title = "Bergen",
+       subtitle = " ") +
+  theme(plot.background = element_rect(fill = "black"),
+        plot.title = element_text(colour = "white"))
+```
+
+### Matbutikker
+
+```{r}
+bbox_g <- getbb('Bergen, Norway')
+
+matdagligvare <- opq(bbox_g) %>% 
+    add_osm_feature(key = "shop", value = "supermarket") %>% osmdata_sf()
+
+Encoding(matdagligvare$osm_points$name) <- "UTF-8"
+
+# View(matdagligvare$osm_points)
+
+```
+
+#### kiwi
+
+```{r}
+
+kiwi <- opq(bbox_g) %>% 
+    add_osm_feature(key = "shop", value = "supermarket") %>% 
+    add_osm_feature(key = "brand", value = "Kiwi") %>% 
+    osmdata_sf()
+
+Encoding(kiwi$osm_points$name) <- "UTF-8"
+
+# kiwis <- kiwi$osm_points
+
+```
+
+#### Meny
+
+```{r}
+meny <- opq(bbox_g) %>% 
+    add_osm_feature(key = "shop", value = "supermarket") %>% 
+    add_osm_feature(key = "brand", value = "Meny") %>% 
+    osmdata_sf()
+
+Encoding(meny$osm_points$name) <- "UTF-8"
+
+# View(meny$osm_points$name)
+
+```
+
+#### Rema 1000
+
+```{r}
+rema <- opq(bbox_g) %>% 
+    add_osm_feature(key = "shop", value = "supermarket") %>% 
+    add_osm_feature(key = "brand", value = "Rema 1000") %>% 
+    osmdata_sf()
+
+Encoding(rema$osm_points$name) <- "UTF-8"
+
+# View(rema$osm_points$name)
+
+```
+
+## Kart
+
+```{r}
+mat_kart <- ggplot() +
+ geom_sf(data = calles$osm_lines,
+          inherit.aes = FALSE,
+          color = "white",
+          size = .4,
+          alpha = .8) +
+  geom_sf(data = carreteras$osm_lines,
+          inherit.aes = FALSE,
+          color = "white",
+          size = .1,
+          alpha = .8) +
+  geom_sf(data = costa$osm_lines,
+          inherit.aes = FALSE,
+          color = "white",
+          size = .4,
+          alpha = .8) +
+  geom_sf(data = kiwi$osm_points,
+          colour="springgreen",
+          fill="springgreen",
+          alpha=.6,
+          size=3,
+          shape=21)+
+  geom_sf(data = meny$osm_points,
+          colour="red",
+          fill="red",
+          alpha=.6,
+          size=3,
+          shape=21)+
+  geom_sf(data = rema$osm_points,
+          colour="blue",
+          fill="blue",
+          alpha=.6,
+          size=3,
+          shape=21)+
+  coord_sf(xlim = c(5.29, 5.36), 
+           ylim = c(60.37, 60.41),
+           expand = FALSE) +
+  theme_void() +
+  labs(title = " Bergen",
+       subtitle = " Dagligvarekjedene",
+       caption = "Kilde: OpenStreetMap") +
+  theme(plot.background = element_rect(fill = "black"),
+        plot.title = element_text(colour = "white"),
+        plot.subtitle= element_text(colour = "white", size = 10),
+        plot.caption= element_text(colour = "white", size = 8))
+
+mat_kart
+
+```
+
+## Lagre filen
+
+```{r}
+
+# Forma 1
+
+ggsave(mat_kart, filename = "mat_kart.png")
+
+
+# ggsave("example4.pdf", width = 10, height = 8, units = "cm")
+# ggsave(p2, filename = "example5.tiff", width = 10, height = 8, units = "cm", dpi = 96)
+
+# Forma 2
+
+# png(file = "defi.png")
+# defi    
+# dev.off() 
+
+
+#png("/home/king-in-the-north/explora.png",width=1200,height=820,units="px",     pointsize=12,bg="white",res=300)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+

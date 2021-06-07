@@ -1,0 +1,130 @@
+---
+title: "Ringnes"
+author: "MV"
+date: "20/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Consumo de bebidas en Noruega
+
+```{r}
+
+getwd()
+
+```
+
+Librerias
+
+```{r}
+library(tidyverse)
+
+```
+# Descarga de archivo de datos. 
+
+En el fichero drikker.csv aparecen los datos con separación de miles con espacio. Se consigue resolver el problema directamente en Import Dataset > configuring / grouping marks:  " "
+
+```{r}
+
+library(readxl)
+ringnes_df <- read_excel("database/ringnes6.xlsx")
+
+```
+
+Transponer la tabla
+
+```{r}
+ringnes_t <- as.data.frame((t(as.matrix(ringnes_df))))
+
+names(ringnes_t) <- ringnes_t[1,]
+
+ringnes_t <- ringnes_t[c(2:11),]
+ringnes_t$Driftsinntekter <- as.numeric(ringnes_t$Driftsinntekter)
+
+ringnes_t$anio = row.names(ringnes_t)
+
+ringnes_t$Egenkapitalandel <- as.numeric(ringnes_t$Egenkapitalandel)
+ringnes_t$Driftsresultat <- as.numeric(ringnes_t$Driftsresultat)
+ringnes_t$Gjeldsgrad <- as.numeric(ringnes_t$Gjeldsgrad)
+ringnes_t$Totalrentabilitet <- as.numeric(ringnes_t$Totalrentabilitet)
+
+```
+grafico
+
+```{r}
+# Bubble plot
+
+library(ggrepel)
+
+
+ringnes_graf <- ringnes_t %>%
+  select(Totalrentabilitet, Egenkapitalandel, Driftsresultat, Gjeldsgrad, anio ) %>% 
+  ggplot(aes(Driftsresultat, Egenkapitalandel, fill = Gjeldsgrad, size= Totalrentabilitet)) + 
+  geom_point(alpha=0.5, shape=21, color="black") +
+  ylab("Egenkapitalandel i %") + 
+  xlab("Driftsresultat NOK") +
+  geom_text_repel(aes(label=anio),vjust = -3.5, nudge_x = 0.05, color="#993333",size=3, min.segment.length = Inf)+
+  scale_size_continuous(range = c(3, 20), name="Totalrentabilitet i %")+
+  # ggtitle("Ringnes AS (2010-2019)") + 
+  theme(plot.title = element_text(face="bold.italic", color="#14856c", size=20, vjust=0.5, hjust=0.5))+
+  theme(axis.text.x = element_text(angle = 0, hjust = 1,color="black", size=10, face="bold" ))+
+  theme(axis.text.y = element_text(color="black", size=10, face="bold" ))+
+  theme(axis.title.x = element_text(color="#993333", size=10, face="bold"))+
+  theme(axis.title.y = element_text(color="#993333", size=10, face="bold"))+
+  theme(legend.title = element_text(color = "#993333", size = 10, face="bold"),
+          legend.text = element_text(color = "black"))+
+    theme(legend.background = element_rect(fill = "white"), 
+        legend.key = element_rect(fill = "white", color = NA))+
+  xlim(170000, 1000000)+
+  ylim(8,28)+ 
+  scale_fill_continuous(low = "#14856c", high = "white",name= "Gjeldsgrad i %")+
+  scale_x_continuous(labels = scales::comma)+
+  labs(title = "Ringnes AS ",
+       subtitle = "Oversikt (2010-2019)",
+       caption = "Kilde: www.proff.no") +
+  theme(plot.background = element_rect(fill = "white"),
+  #      plot.title = element_text(colour = "red"),
+        plot.subtitle= element_text(colour = "#14856c"),
+        plot.caption= element_text(colour = "#14856c", size = 8))
+
+
+
+
+ggsave(ringnes_graf, filename = "ringnes.png")
+
+```
+
+
+symbols
+
+
+```{r}
+
+ringnes_sym <- ringnes_t %>%  select(Totalrentabilitet, Egenkapitalandel, Driftsresultat, Gjeldsgrad, anio) 
+
+palette(heat.colors(10))
+
+symbols(ringnes_sym$Driftsresultat, ringnes_sym$Egenkapitalandel,
+        circle=ringnes_sym$Totalrentabilitet, 
+        bg=1:length(ringnes_sym$Gjeldsgrad),
+        xlab="Driftsresultat i NOK", 
+        ylab="Egenkapitalandel i %",
+        fg="white",
+        xlim = c(150000, 900000),
+        ylim = c(5, 35),
+        inches = 0.5)
+
+text(ringnes_sym$Driftsresultat,ringnes_sym$Egenkapitalandel,ringnes_sym$anio, cex=0.8)
+palette("default")
+
+
+
+
+
+```
+
+
+

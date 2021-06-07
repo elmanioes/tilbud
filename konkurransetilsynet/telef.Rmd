@@ -1,0 +1,204 @@
+---
+title: "telek"
+author: "MV"
+date: "22/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Telekom
+
+```{r}
+
+setwd("C:/mio/Big/git/konkurransetilsynet")
+
+library(readxl)
+telef <- read_excel("database/telef.xlsx")
+
+```
+
+libraries
+
+```{r}
+library (tidyverse)
+```
+
+Tabla larga
+
+```{r}
+telef_l <- telef %>% gather(key = date, value = Valor, -1,-2)
+```
+
+
+Grafico de columnas
+
+```{r}
+
+telef_l %>% filter (Type == "monthly_revenue", date == "Q1 20") %>% arrange(desc(Valor)) %>% slice(1:20) %>% 
+ggplot(aes(x = reorder(Country, Valor), 
+           y = Valor, 
+           fill = ifelse(Country == "Norway", "Highlighted", "Normal") )) + 
+  geom_bar(stat = "identity",width = 0.9 ) + 
+  ## drop legend and Y-axis title
+  theme(legend.position = "none", axis.title.y = element_blank()) +
+  coord_flip()+
+  labs(title="Domestic mobile service:  ",
+       subtitle = "Monthly revenue per total number of subscribers",
+       caption = "Data Collection BEREC")+
+  labs(y = expression("Månedlig betaling"))
+
+
+
+
+
+```
+llamadas, sms, datos
+
+```{r}
+
+# unique(telef_l$Type)
+
+telef_l %>% filter (Type == "av_minut_month", date == "Q1 20") %>% arrange(desc(Valor)) %>% slice(1:20) %>% 
+ggplot(aes(x = reorder(Country, Valor), 
+           y = Valor, 
+           fill = ifelse(Country == "Norway", "Highlighted", "Normal") )) + 
+  geom_bar(stat = "identity",width = 0.9 ) + 
+  ## drop legend and Y-axis title
+  theme(legend.position = "none", axis.title.y = element_blank()) +
+  coord_flip()+
+  labs(title="Domestic calls made:  ",
+       subtitle = "Average number of minutes per month per total number of subscribers", caption = "Data Collection BEREC")+
+  labs(y = expression("månedlig minutes"))
+
+
+
+
+telef_l %>% filter (Type == "av_sms_month", date == "Q1 20") %>% arrange(desc(Valor)) %>% slice(1:20) %>% 
+ggplot(aes(x = reorder(Country, Valor), 
+           y = Valor, 
+           fill = ifelse(Country == "Norway", "Highlighted", "Normal") )) + 
+  geom_bar(stat = "identity",width = 0.9 ) + 
+  ## drop legend and Y-axis title
+  theme(legend.position = "none", axis.title.y = element_blank()) +
+  coord_flip()+
+  labs(title="Domestic SMS services:  ",
+       subtitle = "Average number of SMS per month per total number of subscribers", caption = "Data Collection BEREC")+
+  labs(y = expression("månedlig SMS"))
+
+
+
+
+telef_l %>% filter (Type == "av_GB_montly", date == "Q1 20") %>% arrange(desc(Valor)) %>% slice(1:20) %>% 
+ggplot(aes(x = reorder(Country, Valor), 
+           y = Valor, 
+           fill = ifelse(Country == "Norway", "Highlighted", "Normal") )) + 
+  geom_bar(stat = "identity",width = 0.9 ) + 
+  ## drop legend and Y-axis title
+  theme(legend.position = "none", axis.title.y = element_blank()) +
+  coord_flip()+
+  labs(title="Domestic data services:  ",
+       subtitle = "Average consumption per month per total number of subscribers (GB)", caption = "Data Collection BEREC")+
+  labs(y = expression("månedlig GB"))
+
+
+
+```
+
+```{r}
+
+
+telef_l %>% filter (Type != "monthly_revenue", date == "Q1 20") %>% group_by(Type, Country) %>%
+  arrange(desc(Valor))%>% slice(1:10) %>%
+ggplot(aes(x=Type, y=Valor, fill = Type)) + 
+geom_bar(stat="identity", position=position_dodge())+
+    facet_grid(. ~ Country) + 
+    xlab("Tiempo") + 
+    ylab("Valor")+
+  theme(axis.text.x = NULL)
+  
+  
+
+
+```
+
+
+Markedsandeler mobil tjenester 
+(Nasjonal Kommunikasjon Myndighet)
+
+```{r}
+# Rapportdatoer av NKOM
+
+firma <- c("Telenor", "Telia", "Tele2", "Ice", "øvrige")
+a2005 <- c(56,27,5,NA,12)
+a2009 <- c(55,27,14,NA,5)
+a2015 <- c(59,33,NA, 1,7)
+a2019 <- c(57,24,NA,6,3)
+
+a2005 <- c(56,27,5,0,12)
+a2009 <- c(55,27,14,0,5)
+a2015 <- c(59,33,0, 1,7)
+a2019 <- c(57,24,0,6,3)
+
+
+
+
+# crear dataframe de vectores
+markedsandel <- data.frame(firma, a2005, a2009, a2015, a2019)
+                        
+```
+
+Graff
+
+```{r}
+library(tidyverse)
+library(stringr)
+```
+
+```{r}
+
+df <- markedsandel %>% gather (anio, mark_and, -1)
+df$date <- str_sub(df$anio,2,5)
+
+library(png)
+telenor <- readPNG("logos/telenor2.png")
+telia <- readPNG("logos/telia.png")
+tele2 <- readPNG("logos/tele2.png")
+ice <- readPNG("logos/ice.png")
+
+
+```
+
+Graff
+
+```{r}
+ma <- ggplot(data=df,aes(x=date, y= mark_and, group = firma, colour= firma)) + 
+  geom_line(size=3)  + 
+  geom_point( size=3, shape=21, fill="white") +
+  ylab("% Markedsandeler basert på omsetning") + 
+  xlab("År")+
+  scale_x_discrete(breaks=unique(df$date)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  # geom_text(aes(label = firma), size=3, col="red", vjust=1.5 )+
+  # geom_text(aes(label = mark_and), size=3, col="red", vjust=2.5 )+
+  theme_classic()+
+  annotation_raster(telenor, ymin = 45, ymax= 55, xmin = 3, xmax = 4)+
+  annotation_raster(telia, ymin = 32, ymax= 42, xmin = 1.5, xmax = 2.5)+
+  annotation_raster(tele2, ymin = 14, ymax= 24, xmin = 1, xmax = 2)+
+  annotation_raster(ice, ymin = 7, ymax= 17, xmin = 3.2, xmax = 4.2)+
+  geom_label(aes(x = 2.5, y = 10, label = "Øvrige"), label.size = NA, size = 4, col = "black")+
+  theme(legend.position="none")
+  
+  ma
+  
+  # ggsave(ma, filename = "ma_graff.png")
+  
+  
+```
+
+
+
+
+

@@ -1,0 +1,117 @@
+---
+title: "cerveza"
+author: "MV"
+date: "20/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Consumo de bebidas en Noruega
+
+```{r}
+getwd()
+
+```
+
+Librerias
+
+```{r}
+library(tidyverse)
+library(dygraphs)
+```
+# Descarga de archivo de datos. 
+
+En el fichero drikker.csv aparecen los datos con separación de miles con espacio. Se consigue resolver el problema directamente en Import Dataset > configuring / grouping marks:  " "
+
+```{r}
+
+library(readr)
+omsetning_drikker <- read_delim("database/drikker4.csv", 
+    ";", escape_double = FALSE, trim_ws = TRUE)
+
+```
+Como tenemos los datos por columnas en meses vamos a cambiar la lista ancha por una larga que tenga una columna mes
+
+```{r}
+
+drikker_l=gather(omsetning_drikker,mes,consumo,-1,-2)
+```
+
+Convertimos los meses (formato tres letras en noruego) a formato mes numero
+
+```{r}
+
+meses_levels <- unique(drikker_l$mes)
+
+drikker_l$mes_f2 <- factor(drikker_l$mes)
+drikker_l$mes_f2 <- factor( drikker_l$mes_f2, levels = meses_levels)
+
+# Creamos nueva columna con el factor como numeral
+
+drikker_l$mes_num <- as.integer(drikker_l$mes_f2) 
+
+```
+
+Crear columna de fecha
+
+```{r}
+drikker_l$date <- as.Date(paste0('01/', drikker_l$mes_num,"/", drikker_l$År),
+                            format= "%d/%m/%Y")
+```
+
+Crear base de datos cerveza
+
+```{r}
+# seleccionamos unicamente las columnas que vamos a emplear
+
+#df <- drikker_l %>% select(date, consumo)
+
+df2 <- drikker_l %>% select(date, Type, consumo)
+
+
+ol <- df2 %>% filter (Type == "øl") %>% select(date, consumo)
+
+
+```
+
+Tablas conjunta
+
+```{r}
+
+# crear tabla ancha
+
+drikker_a <- df2 %>% spread(Type,consumo)
+
+```
+
+
+
+```{r}
+
+drikker_ts <- 
+  ts(drikker_a, frequency = 12,                          
+                     start=c(2011, 1), 
+                     end=c(2020, 11)) 
+
+
+dygraph(drikker_ts[, c("øl","energidrikker", "brus")],
+        main = "Omsetning av drikker i Norge",
+                  ylab = "liter") %>% 
+  dyOptions(fillGraph = TRUE, fillAlpha = 0.1, axisLineWidth = 1.5) %>%
+  dyRangeSelector(height = 10) %>%
+  dyLegend(width = 400)
+
+
+
+```
+
+
+
+
+
+
+
+
